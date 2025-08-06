@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Odontogram Interaktif CRUD</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    .tooth { width:40px; height:40px; border:1.2px solid #222; margin:2px; display:inline-block; position:relative;}
+    .surface {position:absolute; width:15px; height:15px;}
+    .surface.top {top:0; left:12px;}
+    .surface.bottom {bottom:0; left:12px;}
+    .surface.left {left:0; top:12px;}
+    .surface.right {right:0; top:12px;}
+    .surface.center {left:12px; top:12px;}
+    .surface.marked {background:#ffd54f;}
+    .tooth-label {font-size:10px; text-align:center;}
+    .tooth.selected {box-shadow:0 0 8px 2px #0b8; background:#e0ffe6;}
+    .odontogram-row { margin-bottom: 6px; }
+  </style>
+</head>
+<body class="p-4">
+<div class="container">
+  <h3 class="mb-4">Odontogram Interaktif - Klinik Gigi</h3>
+  
+  <div class="mb-3">
+    <input class="form-control" id="searchInput" placeholder="Cari nama pasien..." oninput="renderPatients()">
+  </div>
+  <button class="btn btn-success mb-2" onclick="openPatientForm()">Tambah Pasien</button>
+  <table class="table table-bordered" id="patientsTable">
+    <thead>
+      <tr><th>Nama</th><th>Umur</th><th>Kontak</th><th>Aksi</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Modal Form Pasien -->
+  <div class="modal" tabindex="-1" id="patientModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form onsubmit="savePatient(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Tambah/Edit Pasien</h5>
+            <button type="button" class="btn-close" onclick="closePatientForm()"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editIndex">
+            <div class="mb-2"><label>Nama</label>
+              <input class="form-control" id="namaPasien" required>
+            </div>
+            <div class="mb-2"><label>Umur</label>
+              <input class="form-control" id="umurPasien" required type="number">
+            </div>
+            <div class="mb-2"><label>Kontak</label>
+              <input class="form-control" id="kontakPasien">
+            </div>
+            <div class="mb-2"><label>Keterangan Umum</label>
+              <input class="form-control" id="keteranganPasien">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" onclick="closePatientForm()">Batal</button>
+            <button class="btn btn-primary" type="submit">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail dan Odontogram -->
+  <div id="patientDetail" style="display:none;">
+    <h4 id="detailNama"></h4>
+    <p id="detailInfo"></p>
+    <div>
+      <button class="btn btn-primary btn-sm mb-2" onclick="exportPDF()">Export PDF</button>
+      <button class="btn btn-secondary btn-sm mb-2" onclick="closePatientDetail()">Kembali</button>
+    </div>
+    <div id="odontogram"></div>
+    <div class="mb-3 mt-2">
+      <label>Keterangan per Gigi:</label>
+      <input class="form-control" id="gigiNote" placeholder="Klik gigi, tulis keterangan disini lalu simpan!">
+      <button class="btn btn-success btn-sm mt-2" type="button" onclick="saveGigiNote()">Simpan Keterangan</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// --- Data dan konfigurasi dasar ---
+let patients = [];
+let selectedPatientIdx = null;
+let selectedGigi = null;
+
+// Nomor gigi internasional (dewasa dan anak)
+const teethNumbering = [
+  [18,17,16,15,14,13,12,11], [21,22,23,24,25,26,27,28],
+  [55,54,53,52,51],[61,62,63,64,65]
+];
+
+// --- CRUD + Search Pasien ---
+function renderPatients() {
+  const keyword = document.getElementById('searchInput').value.toLowerCase();
+  const tbody = document.querySelector('#patientsTable tbody');
+  tbody.innerHTML = "";
+  patients.forEach((p, i) => {
+    if (keyword && !p.nama.toLowerCase().includes(keyword)) return;
+    tbody.innerHTML += `<tr>
+      <td>${p.nama}</td><td>${p.umur}</td><td>${p.kontak}</td>
+      <td>
+        <button onclick="openPatientDetail(${i})" class="btn btn-sm btn-info">Lihat</button>
+        <button onclick="editPatient(${i})" class="btn btn-sm btn-warning">Edit</button>
+        <button onclick="deletePatient(${i})" class="btn btn-sm btn-danger">Hapus</button>
+      </td>
+    </tr>`;
+  });
+}
+renderPatients();
+
+function openPatientForm(editIdx = null) {
+  document.getElementById('patientModal').style.display = 'block';
+  document.getElementById('editIndex').value = editIdx !== null ? editIdx : "";
+  document.getElementById('namaPasien').value = editIdx !== null ? patients[editIdx].nama : '';
+  document.getElementById('umurPasien').value = editIdx !== null ? patients[editIdx].umur : '';
+  document.getElementById('kontakPasien').value = editIdx !== null ? patients[editIdx].kontak : '';
+  document.getElementById('keteranganPasien').value = editIdx !== null ? patients[editIdx].keterangan : '';
+  document.getElementById('modalTitle').innerText = editIdx !== null ? "Edit Pasien" : "Tambah Pasien";
+}
+function closePatientForm() { document.getElementById('patientModal').style.display = 'none'; }
+function savePatient(e){
+  e.preventDefault();
+  const idx = document.getElementById('editIndex').value;
+  const data = {
+    nama: document.getElementById('namaPasien').value,
+    umur: document.getElementById('umurPasien').value,
+    kontak: document.getElementById('kontakPasien').value,
+    keterangan: document.getElementById('keteranganPasien').value,
+    odontogram: {},
+    gigiNote: {}
+  };
+  if(idx === "") patients.push(data); else patients[idx] = {...patients[idx], ...data};
+  closePatientForm();
+  renderPatients();
+}
+function editPatient(idx){ openPatientForm(idx); }
+function deletePatient(idx){ if(confirm("Hapus pasien?")){patients.splice(idx,1); renderPatients();} }
+
+// --- Detail dan Odontogram --- 
+function openPatientDetail(idx){
+  selectedPatientIdx = idx;
+  selectedGigi = null;
+  document.getElementById('gigiNote').value = '';
+  document.getElementById('patientDetail').style.display = 'block';
+  document.getElementById('detailNama').innerText = patients[idx].nama;
+  document.getElementById('detailInfo').innerText = `Umur: ${patients[idx].umur}, Kontak: ${patients[idx].kontak}\n${patients[idx].keterangan || ""}`;
+  renderOdontogram();
+}
+function closePatientDetail(){ 
+  document.getElementById('patientDetail').style.display = 'none'; 
+  selectedPatientIdx=null; selectedGigi = null;
+}
+function renderOdontogram(){
+  const odontogramData = patients[selectedPatientIdx].odontogram;
+  const gigiNote = patients[selectedPatientIdx].gigiNote;
+  const kontainer = document.getElementById('odontogram');
+  kontainer.innerHTML = '';
+  teethNumbering.forEach((row, i) => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = "odontogram-row";
+    row.forEach(number => {
+      const div = document.createElement('div');
+      div.className = "tooth" + (selectedGigi === number ? " selected" : "");
+      div.setAttribute('data-tooth', number);
+      div.innerHTML = `
+        <div class="surface top"   data-surface="top"></div>
+        <div class="surface left"  data-surface="left"></div>
+        <div class="surface right" data-surface="right"></div>
+        <div class="surface bottom"data-surface="bottom"></div>
+        <div class="surface center"data-surface="center"></div>
+        <div class="tooth-label">${number}${gigiNote[number]? '<br/><span style="font-size:8px;color:green;">'+gigiNote[number]+'</span>':''}</div>
+      `;
+      if (!odontogramData[number]) odontogramData[number] = {};
+      Object.keys(odontogramData[number]).forEach(surf => {
+        if (odontogramData[number][surf])
+          div.querySelector(`.surface.${surf}`).classList.add("marked");
+      });
+      div.onclick = (e)=>{
+        selectedGigi = number;
+        document.getElementById('gigiNote').value = gigiNote[number]||"";
+        renderOdontogram();
+      }
+      div.querySelectorAll('.surface').forEach(surfDiv=>{
+        surfDiv.addEventListener('click',e=>{
+          e.stopPropagation();
+          const surface = surfDiv.getAttribute('data-surface');
+          odontogramData[number][surface] = !odontogramData[number][surface];
+          renderOdontogram();
+        });
+      });
+      rowDiv.appendChild(div);
+    });
+    kontainer.appendChild(rowDiv);
+  });
+}
+function saveGigiNote(){
+  if(selectedGigi===null){ alert("Klik gigi dulu!"); return; }
+  patients[selectedPatientIdx].gigiNote[selectedGigi] = document.getElementById('gigiNote').value;
+  renderOdontogram();
+  alert('Keterangan gigi '+selectedGigi+' disimpan.');
+}
+
+// --- Export PDF ---
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const p = patients[selectedPatientIdx];
+  let y = 10;
+  doc.setFontSize(14);
+  doc.text("ODONTOGRAM PASIEN", 70, y); y+=10;
+  doc.setFontSize(11);
+  doc.text("Nama: " + p.nama, 10, y); y+=7;
+  doc.text("Umur: " + p.umur, 10, y); y+=7;
+  doc.text("Kontak: " + p.kontak, 10, y); y+=7;
+  doc.text("Keterangan: " + (p.keterangan||"-"), 10, y); y+=10;
+  Object.keys(p.odontogram).forEach(no => {
+    let surf = Object.keys(p.odontogram[no]).filter(s=>p.odontogram[no][s]);
+    if (surf.length > 0 || (p.gigiNote[no]&&p.gigiNote[no].trim()!=="")) {
+      doc.text(`Gigi ${no}: ` +
+         (surf.length>0 ? `[${surf.join(',')}]` : "")+
+         (p.gigiNote[no]? `, Catatan: ${p.gigiNote[no]}`:"")
+      , 10, y);
+      y+=7; if(y>270){doc.addPage(); y=10;}
+    }
+  });
+  doc.save("odontogram-"+p.nama+".pdf");
+}
+// Modal workaround (show/hide manual)
+document.querySelectorAll('.modal').forEach(m => m.style.display='none');
+window.onclick = function(e){
+  document.querySelectorAll('.modal').forEach(m=>{
+    if(e.target==m) m.style.display = 'none';
+  });
+}
+</script>
+</body>
+</html>
