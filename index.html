@@ -1,243 +1,584 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Odontogram Interaktif CRUD</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <style>
-    .tooth { width:40px; height:40px; border:1.2px solid #222; margin:2px; display:inline-block; position:relative;}
-    .surface {position:absolute; width:15px; height:15px;}
-    .surface.top {top:0; left:12px;}
-    .surface.bottom {bottom:0; left:12px;}
-    .surface.left {left:0; top:12px;}
-    .surface.right {right:0; top:12px;}
-    .surface.center {left:12px; top:12px;}
-    .surface.marked {background:#ffd54f;}
-    .tooth-label {font-size:10px; text-align:center;}
-    .tooth.selected {box-shadow:0 0 8px 2px #0b8; background:#e0ffe6;}
-    .odontogram-row { margin-bottom: 6px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odontogram Digital</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .tooth {
+            width: 60px;
+            height: 60px;
+            margin: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            position: relative;
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            border-radius: 8px;
+            box-shadow: 
+                5px 5px 15px rgba(0,0,0,0.2),
+                -5px -5px 15px rgba(255,255,255,0.8),
+                inset 2px 2px 5px rgba(0,0,0,0.1);
+            transform-style: preserve-3d;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .tooth:hover {
+            transform: rotateX(-10deg) rotateY(10deg) scale(1.05) translateZ(10px);
+            box-shadow: 
+                8px 8px 25px rgba(0,0,0,0.3),
+                -8px -8px 25px rgba(255,255,255,0.9),
+                inset 2px 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .tooth-number {
+            position: absolute;
+            top: -25px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .tooth-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .quadrant {
+            margin: 20px 0;
+        }
+
+        .quadrant-label {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        /* Bentuk gigi 3D yang berbeda */
+        .incisor {
+            background: linear-gradient(145deg, #ffffff, #f5f5f5);
+            border-radius: 12px 12px 8px 8px;
+            box-shadow: 
+                3px 3px 12px rgba(0,0,0,0.2),
+                -3px -3px 12px rgba(255,255,255,0.9),
+                inset 1px 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .incisor:hover {
+            transform: rotateX(-8deg) rotateY(8deg) scale(1.1) translateZ(8px);
+        }
+
+        .canine {
+            background: linear-gradient(145deg, #ffffff, #f3f3f3);
+            border-radius: 50% 50% 30% 30%;
+            box-shadow: 
+                4px 4px 15px rgba(0,0,0,0.25),
+                -4px -4px 15px rgba(255,255,255,0.9),
+                inset 2px 2px 4px rgba(0,0,0,0.12);
+        }
+
+        .canine:hover {
+            transform: rotateX(-12deg) rotateY(12deg) scale(1.08) translateZ(10px);
+        }
+
+        .premolar {
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            border-radius: 25%;
+            box-shadow: 
+                5px 5px 18px rgba(0,0,0,0.22),
+                -5px -5px 18px rgba(255,255,255,0.85),
+                inset 2px 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .premolar:hover {
+            transform: rotateX(-10deg) rotateY(10deg) scale(1.06) translateZ(12px);
+        }
+
+        .molar {
+            background: linear-gradient(145deg, #ffffff, #ececec);
+            border-radius: 15px;
+            box-shadow: 
+                6px 6px 20px rgba(0,0,0,0.25),
+                -6px -6px 20px rgba(255,255,255,0.8),
+                inset 3px 3px 6px rgba(0,0,0,0.18);
+        }
+
+        .molar:hover {
+            transform: rotateX(-8deg) rotateY(8deg) scale(1.04) translateZ(15px);
+        }
+
+        /* Status gigi dengan efek 3D */
+        .healthy { 
+            background: linear-gradient(145deg, #c8e6c9, #a5d6a7); 
+            box-shadow: 
+                4px 4px 15px rgba(76, 175, 80, 0.3),
+                -4px -4px 15px rgba(255,255,255,0.9),
+                inset 2px 2px 5px rgba(76, 175, 80, 0.2);
+        }
+        
+        .caries { 
+            background: linear-gradient(145deg, #ffcdd2, #ef9a9a); 
+            box-shadow: 
+                4px 4px 15px rgba(244, 67, 54, 0.3),
+                -4px -4px 15px rgba(255,255,255,0.9),
+                inset 2px 2px 5px rgba(244, 67, 54, 0.2);
+        }
+        
+        .filled { 
+            background: linear-gradient(145deg, #fff3e0, #ffcc02); 
+            box-shadow: 
+                4px 4px 15px rgba(255, 193, 7, 0.3),
+                -4px -4px 15px rgba(255,255,255,0.9),
+                inset 2px 2px 5px rgba(255, 193, 7, 0.2);
+        }
+        
+        .missing { 
+            background: linear-gradient(145deg, #f5f5f5, #e0e0e0); 
+            opacity: 0.4; 
+            box-shadow: 
+                2px 2px 8px rgba(0,0,0,0.1),
+                -2px -2px 8px rgba(255,255,255,0.5),
+                inset 1px 1px 3px rgba(0,0,0,0.05);
+            transform: scale(0.9);
+        }
+        
+        .crown { 
+            background: linear-gradient(145deg, #e1bee7, #ba68c8); 
+            box-shadow: 
+                4px 4px 15px rgba(156, 39, 176, 0.3),
+                -4px -4px 15px rgba(255,255,255,0.9),
+                inset 2px 2px 5px rgba(156, 39, 176, 0.2);
+        }
+
+        .legend {
+            margin-top: 30px;
+        }
+
+        .legend-item {
+            display: inline-block;
+            margin: 5px 10px;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: #333;
+            margin: 0 10px;
+        }
+
+        .maxilla {
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 20px;
+        }
+
+        .mandible {
+            border-top: 2px solid #ccc;
+            padding-top: 20px;
+        }
+    </style>
 </head>
-<body class="p-4">
-<div class="container">
-  <h3 class="mb-4">Odontogram Interaktif - Klinik Gigi</h3>
-  
-  <div class="mb-3">
-    <input class="form-control" id="searchInput" placeholder="Cari nama pasien..." oninput="renderPatients()">
-  </div>
-  <button class="btn btn-success mb-2" onclick="openPatientForm()">Tambah Pasien</button>
-  <table class="table table-bordered" id="patientsTable">
-    <thead>
-      <tr><th>Nama</th><th>Umur</th><th>Kontak</th><th>Aksi</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-4">Odontogram Digital</h2>
+                
+                <!-- Rahang Atas (Maxilla) -->
+                <div class="maxilla">
+                    <h4 class="text-center mb-5">Rahang Atas dewasa</h4>
+                    
+                    <!-- Gigi Dewasa Atas: 18-11 dan 21-28 -->
+                    <div class="tooth-row mb-4">
+                        <!-- Kuadran 1 (Kanan Atas) -->
+                        <div class="tooth" data-tooth="18" data-type="molar">
+                            <div class="tooth-number">18</div>
+                        </div>
+                        <div class="tooth" data-tooth="17" data-type="molar">
+                            <div class="tooth-number">17</div>
+                        </div>
+                        <div class="tooth" data-tooth="16" data-type="molar">
+                            <div class="tooth-number">16</div>
+                        </div>
+                        <div class="tooth" data-tooth="15" data-type="premolar">
+                            <div class="tooth-number">15</div>
+                        </div>
+                        <div class="tooth" data-tooth="14" data-type="premolar">
+                            <div class="tooth-number">14</div>
+                        </div>
+                        <div class="tooth" data-tooth="13" data-type="canine">
+                            <div class="tooth-number">13</div>
+                        </div>
+                        <div class="tooth" data-tooth="12" data-type="incisor">
+                            <div class="tooth-number">12</div>
+                        </div>
+                        <div class="tooth" data-tooth="11" data-type="incisor">
+                            <div class="tooth-number">11</div>
+                        </div>
+                        
+                        <div class="arrow">▼</div>
+                        
+                        <!-- Kuadran 2 (Kiri Atas) -->
+                        <div class="tooth" data-tooth="21" data-type="incisor">
+                            <div class="tooth-number">21</div>
+                        </div>
+                        <div class="tooth" data-tooth="22" data-type="incisor">
+                            <div class="tooth-number">22</div>
+                        </div>
+                        <div class="tooth" data-tooth="23" data-type="canine">
+                            <div class="tooth-number">23</div>
+                        </div>
+                        <div class="tooth" data-tooth="24" data-type="premolar">
+                            <div class="tooth-number">24</div>
+                        </div>
+                        <div class="tooth" data-tooth="25" data-type="premolar">
+                            <div class="tooth-number">25</div>
+                        </div>
+                        <div class="tooth" data-tooth="26" data-type="molar">
+                            <div class="tooth-number">26</div>
+                        </div>
+                        <div class="tooth" data-tooth="27" data-type="molar">
+                            <div class="tooth-number">27</div>
+                        </div>
+                        <div class="tooth" data-tooth="28" data-type="molar">
+                            <div class="tooth-number">28</div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="text-center mb-5">Rahang Atas anak-anak</h4>
 
-  <!-- Modal Form Pasien -->
-  <div class="modal" tabindex="-1" id="patientModal">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form onsubmit="savePatient(event)">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalTitle">Tambah/Edit Pasien</h5>
-            <button type="button" class="btn-close" onclick="closePatientForm()"></button>
-          </div>
-          <div class="modal-body">
-            <input type="hidden" id="editIndex">
-            <div class="mb-2"><label>Nama</label>
-              <input class="form-control" id="namaPasien" required>
+                    <!-- Gigi Susu Atas: 55-51 dan 61-65 -->
+                    <div class="tooth-row mt-5">
+                        <div class="tooth" data-tooth="55" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">55</div>
+                        </div>
+                        <div class="tooth" data-tooth="54" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">54</div>
+                        </div>
+                        <div class="tooth" data-tooth="53" data-type="canine" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">53</div>
+                        </div>
+                        <div class="tooth" data-tooth="52" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">52</div>
+                        </div>
+                        <div class="tooth" data-tooth="51" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">51</div>
+                        </div>
+                        
+                        <div class="arrow">▲</div>
+                        <div class="arrow">▼</div>
+                        
+                        <div class="tooth" data-tooth="61" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">61</div>
+                        </div>
+                        <div class="tooth" data-tooth="62" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">62</div>
+                        </div>
+                        <div class="tooth" data-tooth="63" data-type="canine" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">63</div>
+                        </div>
+                        <div class="tooth" data-tooth="64" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">64</div>
+                        </div>
+                        <div class="tooth" data-tooth="65" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">65</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rahang Bawah (Mandible) -->
+                <div class="mandible mt-4">
+                    <h4 class="text-center mb-5">Rahang Bawah anak-anak</h4>
+                    
+                    <!-- Gigi Susu Bawah: 85-81 dan 71-75 -->
+                    <div class="tooth-row mb-4">
+                        <div class="tooth" data-tooth="85" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">85</div>
+                        </div>
+                        <div class="tooth" data-tooth="84" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">84</div>
+                        </div>
+                        <div class="tooth" data-tooth="83" data-type="canine" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">83</div>
+                        </div>
+                        <div class="tooth" data-tooth="82" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">82</div>
+                        </div>
+                        <div class="tooth" data-tooth="81" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">81</div>
+                        </div>
+                        
+                        <div class="arrow">▲</div>
+                        <div class="arrow">▼</div>
+                        
+                        <div class="tooth" data-tooth="71" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">71</div>
+                        </div>
+                        <div class="tooth" data-tooth="72" data-type="incisor" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">72</div>
+                        </div>
+                        <div class="tooth" data-tooth="73" data-type="canine" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">73</div>
+                        </div>
+                        <div class="tooth" data-tooth="74" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">74</div>
+                        </div>
+                        <div class="tooth" data-tooth="75" data-type="molar" style="width: 45px; height: 45px;">
+                            <div class="tooth-number">75</div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="text-center mb-5">Rahang bawah dewasa</h4>
+
+
+                    <!-- Gigi Dewasa Bawah: 48-41 dan 31-38 -->
+                    <div class="tooth-row mt-5">
+                        <!-- Kuadran 4 (Kiri Bawah) -->
+                        <div class="tooth" data-tooth="48" data-type="molar">
+                            <div class="tooth-number">48</div>
+                        </div>
+                        <div class="tooth" data-tooth="47" data-type="molar">
+                            <div class="tooth-number">47</div>
+                        </div>
+                        <div class="tooth" data-tooth="46" data-type="molar">
+                            <div class="tooth-number">46</div>
+                        </div>
+                        <div class="tooth" data-tooth="45" data-type="premolar">
+                            <div class="tooth-number">45</div>
+                        </div>
+                        <div class="tooth" data-tooth="44" data-type="premolar">
+                            <div class="tooth-number">44</div>
+                        </div>
+                        <div class="tooth" data-tooth="43" data-type="canine">
+                            <div class="tooth-number">43</div>
+                        </div>
+                        <div class="tooth" data-tooth="42" data-type="incisor">
+                            <div class="tooth-number">42</div>
+                        </div>
+                        <div class="tooth" data-tooth="41" data-type="incisor">
+                            <div class="tooth-number">41</div>
+                        </div>
+                        
+                        <div class="arrow">▲</div>
+                        
+                        <!-- Kuadran 3 (Kanan Bawah) -->
+                        <div class="tooth" data-tooth="31" data-type="incisor">
+                            <div class="tooth-number">31</div>
+                        </div>
+                        <div class="tooth" data-tooth="32" data-type="incisor">
+                            <div class="tooth-number">32</div>
+                        </div>
+                        <div class="tooth" data-tooth="33" data-type="canine">
+                            <div class="tooth-number">33</div>
+                        </div>
+                        <div class="tooth" data-tooth="34" data-type="premolar">
+                            <div class="tooth-number">34</div>
+                        </div>
+                        <div class="tooth" data-tooth="35" data-type="premolar">
+                            <div class="tooth-number">35</div>
+                        </div>
+                        <div class="tooth" data-tooth="36" data-type="molar">
+                            <div class="tooth-number">36</div>
+                        </div>
+                        <div class="tooth" data-tooth="37" data-type="molar">
+                            <div class="tooth-number">37</div>
+                        </div>
+                        <div class="tooth" data-tooth="38" data-type="molar">
+                            <div class="tooth-number">38</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Gigi Legend -->
+                <div class="legend">
+                    <h5>Status Gigi:</h5>
+                    <div class="legend-item healthy">Sehat</div>
+                    <div class="legend-item caries">Karies</div>
+                    <div class="legend-item filled">Tumpatan</div>
+                    <div class="legend-item crown">Mahkota</div>
+                    <div class="legend-item missing">Hilang</div>
+                </div>
+                
+                <!-- Control Panel -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Status Gigi Terpilih</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Gigi: <span id="selectedTooth">Belum dipilih</span></p>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success btn-sm" onclick="setToothStatus('healthy')">Sehat</button>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="setToothStatus('caries')">Karies</button>
+                                    <button type="button" class="btn btn-warning btn-sm" onclick="setToothStatus('filled')">Tumpatan</button>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="setToothStatus('crown')">Mahkota</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setToothStatus('missing')">Hilang</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Aksi</h5>
+                            </div>
+                            <div class="card-body">
+                                <button type="button" class="btn btn-primary" onclick="resetOdontogram()">Reset Semua</button>
+                                <button type="button" class="btn btn-success" onclick="saveOdontogram()">Simpan</button>
+                                <button type="button" class="btn btn-info" onclick="printOdontogram()">Cetak</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="mb-2"><label>Umur</label>
-              <input class="form-control" id="umurPasien" required type="number">
-            </div>
-            <div class="mb-2"><label>Kontak</label>
-              <input class="form-control" id="kontakPasien">
-            </div>
-            <div class="mb-2"><label>Keterangan Umum</label>
-              <input class="form-control" id="keteranganPasien">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" type="button" onclick="closePatientForm()">Batal</button>
-            <button class="btn btn-primary" type="submit">Simpan</button>
-          </div>
-        </form>
-      </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Detail dan Odontogram -->
-  <div id="patientDetail" style="display:none;">
-    <h4 id="detailNama"></h4>
-    <p id="detailInfo"></p>
-    <div>
-      <button class="btn btn-primary btn-sm mb-2" onclick="exportPDF()">Export PDF</button>
-      <button class="btn btn-secondary btn-sm mb-2" onclick="closePatientDetail()">Kembali</button>
-    </div>
-    <div id="odontogram"></div>
-    <div class="mb-3 mt-2">
-      <label>Keterangan per Gigi:</label>
-      <input class="form-control" id="gigiNote" placeholder="Klik gigi, tulis keterangan disini lalu simpan!">
-      <button class="btn btn-success btn-sm mt-2" type="button" onclick="saveGigiNote()">Simpan Keterangan</button>
-    </div>
-  </div>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-// --- Data dan konfigurasi dasar ---
-let patients = [];
-let selectedPatientIdx = null;
-let selectedGigi = null;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedTooth = null;
+        let toothStatus = {};
 
-// Nomor gigi internasional (dewasa dan anak)
-const teethNumbering = [
-  [18,17,16,15,14,13,12,11], [21,22,23,24,25,26,27,28],
-  [55,54,53,52,51],[61,62,63,64,65]
-];
-
-// --- CRUD + Search Pasien ---
-function renderPatients() {
-  const keyword = document.getElementById('searchInput').value.toLowerCase();
-  const tbody = document.querySelector('#patientsTable tbody');
-  tbody.innerHTML = "";
-  patients.forEach((p, i) => {
-    if (keyword && !p.nama.toLowerCase().includes(keyword)) return;
-    tbody.innerHTML += `<tr>
-      <td>${p.nama}</td><td>${p.umur}</td><td>${p.kontak}</td>
-      <td>
-        <button onclick="openPatientDetail(${i})" class="btn btn-sm btn-info">Lihat</button>
-        <button onclick="editPatient(${i})" class="btn btn-sm btn-warning">Edit</button>
-        <button onclick="deletePatient(${i})" class="btn btn-sm btn-danger">Hapus</button>
-      </td>
-    </tr>`;
-  });
-}
-renderPatients();
-
-function openPatientForm(editIdx = null) {
-  document.getElementById('patientModal').style.display = 'block';
-  document.getElementById('editIndex').value = editIdx !== null ? editIdx : "";
-  document.getElementById('namaPasien').value = editIdx !== null ? patients[editIdx].nama : '';
-  document.getElementById('umurPasien').value = editIdx !== null ? patients[editIdx].umur : '';
-  document.getElementById('kontakPasien').value = editIdx !== null ? patients[editIdx].kontak : '';
-  document.getElementById('keteranganPasien').value = editIdx !== null ? patients[editIdx].keterangan : '';
-  document.getElementById('modalTitle').innerText = editIdx !== null ? "Edit Pasien" : "Tambah Pasien";
-}
-function closePatientForm() { document.getElementById('patientModal').style.display = 'none'; }
-function savePatient(e){
-  e.preventDefault();
-  const idx = document.getElementById('editIndex').value;
-  const data = {
-    nama: document.getElementById('namaPasien').value,
-    umur: document.getElementById('umurPasien').value,
-    kontak: document.getElementById('kontakPasien').value,
-    keterangan: document.getElementById('keteranganPasien').value,
-    odontogram: {},
-    gigiNote: {}
-  };
-  if(idx === "") patients.push(data); else patients[idx] = {...patients[idx], ...data};
-  closePatientForm();
-  renderPatients();
-}
-function editPatient(idx){ openPatientForm(idx); }
-function deletePatient(idx){ if(confirm("Hapus pasien?")){patients.splice(idx,1); renderPatients();} }
-
-// --- Detail dan Odontogram --- 
-function openPatientDetail(idx){
-  selectedPatientIdx = idx;
-  selectedGigi = null;
-  document.getElementById('gigiNote').value = '';
-  document.getElementById('patientDetail').style.display = 'block';
-  document.getElementById('detailNama').innerText = patients[idx].nama;
-  document.getElementById('detailInfo').innerText = `Umur: ${patients[idx].umur}, Kontak: ${patients[idx].kontak}\n${patients[idx].keterangan || ""}`;
-  renderOdontogram();
-}
-function closePatientDetail(){ 
-  document.getElementById('patientDetail').style.display = 'none'; 
-  selectedPatientIdx=null; selectedGigi = null;
-}
-function renderOdontogram(){
-  const odontogramData = patients[selectedPatientIdx].odontogram;
-  const gigiNote = patients[selectedPatientIdx].gigiNote;
-  const kontainer = document.getElementById('odontogram');
-  kontainer.innerHTML = '';
-  teethNumbering.forEach((row, i) => {
-    const rowDiv = document.createElement('div');
-    rowDiv.className = "odontogram-row";
-    row.forEach(number => {
-      const div = document.createElement('div');
-      div.className = "tooth" + (selectedGigi === number ? " selected" : "");
-      div.setAttribute('data-tooth', number);
-      div.innerHTML = `
-        <div class="surface top"   data-surface="top"></div>
-        <div class="surface left"  data-surface="left"></div>
-        <div class="surface right" data-surface="right"></div>
-        <div class="surface bottom"data-surface="bottom"></div>
-        <div class="surface center"data-surface="center"></div>
-        <div class="tooth-label">${number}${gigiNote[number]? '<br/><span style="font-size:8px;color:green;">'+gigiNote[number]+'</span>':''}</div>
-      `;
-      if (!odontogramData[number]) odontogramData[number] = {};
-      Object.keys(odontogramData[number]).forEach(surf => {
-        if (odontogramData[number][surf])
-          div.querySelector(`.surface.${surf}`).classList.add("marked");
-      });
-      div.onclick = (e)=>{
-        selectedGigi = number;
-        document.getElementById('gigiNote').value = gigiNote[number]||"";
-        renderOdontogram();
-      }
-      div.querySelectorAll('.surface').forEach(surfDiv=>{
-        surfDiv.addEventListener('click',e=>{
-          e.stopPropagation();
-          const surface = surfDiv.getAttribute('data-surface');
-          odontogramData[number][surface] = !odontogramData[number][surface];
-          renderOdontogram();
+        // Inisialisasi event listeners dan efek 3D
+        document.addEventListener('DOMContentLoaded', function() {
+            const teeth = document.querySelectorAll('.tooth');
+            teeth.forEach((tooth, index) => {
+                // Tambahkan kelas tipe gigi untuk efek 3D
+                const toothType = tooth.getAttribute('data-type');
+                if (toothType) {
+                    tooth.classList.add(toothType);
+                }
+                
+                // Event listener untuk klik
+                tooth.addEventListener('click', function() {
+                    selectTooth(this);
+                });
+                
+                // Animasi masuk bertahap
+                setTimeout(() => {
+                    tooth.style.opacity = '1';
+                    tooth.style.transform = 'translateY(0)';
+                }, index * 50);
+            });
         });
-      });
-      rowDiv.appendChild(div);
-    });
-    kontainer.appendChild(rowDiv);
-  });
-}
-function saveGigiNote(){
-  if(selectedGigi===null){ alert("Klik gigi dulu!"); return; }
-  patients[selectedPatientIdx].gigiNote[selectedGigi] = document.getElementById('gigiNote').value;
-  renderOdontogram();
-  alert('Keterangan gigi '+selectedGigi+' disimpan.');
-}
 
-// --- Export PDF ---
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const p = patients[selectedPatientIdx];
-  let y = 10;
-  doc.setFontSize(14);
-  doc.text("ODONTOGRAM PASIEN", 70, y); y+=10;
-  doc.setFontSize(11);
-  doc.text("Nama: " + p.nama, 10, y); y+=7;
-  doc.text("Umur: " + p.umur, 10, y); y+=7;
-  doc.text("Kontak: " + p.kontak, 10, y); y+=7;
-  doc.text("Keterangan: " + (p.keterangan||"-"), 10, y); y+=10;
-  Object.keys(p.odontogram).forEach(no => {
-    let surf = Object.keys(p.odontogram[no]).filter(s=>p.odontogram[no][s]);
-    if (surf.length > 0 || (p.gigiNote[no]&&p.gigiNote[no].trim()!=="")) {
-      doc.text(`Gigi ${no}: ` +
-         (surf.length>0 ? `[${surf.join(',')}]` : "")+
-         (p.gigiNote[no]? `, Catatan: ${p.gigiNote[no]}`:"")
-      , 10, y);
-      y+=7; if(y>270){doc.addPage(); y=10;}
-    }
-  });
-  doc.save("odontogram-"+p.nama+".pdf");
-}
-// Modal workaround (show/hide manual)
-document.querySelectorAll('.modal').forEach(m => m.style.display='none');
-window.onclick = function(e){
-  document.querySelectorAll('.modal').forEach(m=>{
-    if(e.target==m) m.style.display = 'none';
-  });
-}
-</script>
+        // Tambahkan CSS untuk animasi awal
+        const style = document.createElement('style');
+        style.textContent = `
+            .tooth {
+                opacity: 0;
+                transform: translateY(-20px);
+                transition: all 0.5s ease, transform 0.3s ease;
+            }
+        `;
+        document.head.appendChild(style);
+
+        function selectTooth(element) {
+            // Hapus seleksi sebelumnya
+            if (selectedTooth) {
+                selectedTooth.style.border = '1px solid rgba(0,0,0,0.1)';
+                selectedTooth.style.transform = '';
+            }
+            
+            // Pilih gigi baru dengan efek 3D yang lebih dramatis
+            selectedTooth = element;
+            element.style.border = '3px solid #ff5722';
+            element.style.transform = 'rotateX(-15deg) rotateY(15deg) scale(1.15) translateZ(20px)';
+            element.style.boxShadow = `
+                10px 10px 30px rgba(255, 87, 34, 0.4),
+                -10px -10px 30px rgba(255,255,255,0.9),
+                inset 3px 3px 8px rgba(255, 87, 34, 0.2)
+            `;
+            
+            // Update display
+            document.getElementById('selectedTooth').textContent = element.getAttribute('data-tooth');
+        }
+
+        function setToothStatus(status) {
+            if (!selectedTooth) {
+                alert('Pilih gigi terlebih dahulu!');
+                return;
+            }
+            
+            const toothNumber = selectedTooth.getAttribute('data-tooth');
+            toothStatus[toothNumber] = status;
+            
+            // Hapus semua kelas status sebelumnya
+            selectedTooth.classList.remove('healthy', 'caries', 'filled', 'crown', 'missing');
+            
+            // Tambah kelas status baru
+            selectedTooth.classList.add(status);
+        }
+
+        function resetOdontogram() {
+            if (confirm('Apakah Anda yakin ingin mereset semua status gigi?')) {
+                const teeth = document.querySelectorAll('.tooth');
+                teeth.forEach(tooth => {
+                    tooth.classList.remove('healthy', 'caries', 'filled', 'crown', 'missing');
+                    tooth.style.border = '1px solid rgba(0,0,0,0.1)';
+                    tooth.style.transform = '';
+                    tooth.style.boxShadow = '';
+                    
+                    // Reset ke tampilan 3D default berdasarkan tipe gigi
+                    const toothType = tooth.getAttribute('data-type');
+                    if (toothType) {
+                        tooth.classList.add(toothType);
+                    }
+                });
+                
+                toothStatus = {};
+                selectedTooth = null;
+                document.getElementById('selectedTooth').textContent = 'Belum dipilih';
+            }
+        }
+
+        function saveOdontogram() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                toothStatus: toothStatus
+            };
+            
+            // Simulasi penyimpanan (dalam aplikasi nyata, ini akan dikirim ke server)
+            localStorage.setItem('odontogram_data', JSON.stringify(data));
+            alert('Data odontogram berhasil disimpan!');
+        }
+
+        function printOdontogram() {
+            window.print();
+        }
+
+        // Load data yang tersimpan
+        function loadOdontogram() {
+            const savedData = localStorage.getItem('odontogram_data');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                toothStatus = data.toothStatus || {};
+                
+                // Apply status yang tersimpan
+                Object.keys(toothStatus).forEach(toothNumber => {
+                    const tooth = document.querySelector(`[data-tooth="${toothNumber}"]`);
+                    if (tooth) {
+                        tooth.classList.add(toothStatus[toothNumber]);
+                    }
+                });
+            }
+        }
+
+        // Load data saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOdontogram();
+        });
+    </script>
 </body>
 </html>
